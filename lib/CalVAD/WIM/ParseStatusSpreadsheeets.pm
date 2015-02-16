@@ -1,3 +1,4 @@
+# ABSTRACT: turns baubles into trinkets
 use strict;
 use warnings;
 package CalVAD::WIM::ParseStatusSpreadsheeets;
