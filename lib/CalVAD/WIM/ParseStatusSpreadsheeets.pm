@@ -195,3 +195,49 @@ sub _build_data {
 
 __PACKAGE__->meta->make_immutable;
 1;
+
+=head1 SYNOPSIS
+
+Parse the Excel spreadsheets that Caltrans WIM staff use to track the monthly status of each Weigh In Motion station.
+
+=method new
+
+create a new parser object.  The required parameters are
+
+                'past_month'=>[0 or 1],
+                'file'=>[complete path to input file],
+                'year'=>[the year the file applies to]
+
+The status spreadsheets have two months in them.  The first month listed is the previous month, and the second one is the current month.  In a perfect world, both values would be correct and up to date.  In practice, it is occasionally true that one of the two is not up to date.  By setting the "past_month" input parameter to 1, you can extract data from the prior month, to possibly fix some missing data.  The default is zero, but the parameter is required anyway to be explicit about what you want to do.
+
+The file parameter needs to be the fully qualified path to the input file.
+
+The year is not auto-extracted from the file name.  Instead, the user has to manually enter it in.  This is usually done in a script, where the year is known because all of the status spreadsheets are in folders below some higher level year folder.  It is error prone to try to extract the year from the file name, because what if CT decides to change their naming scheme?
+
+=method past_month
+
+Get the value of the past_month variable, which was set on object creation.  Immutable.
+
+=method file
+
+Get the value of the file variable, which was set on object creation.  Immutable.
+
+=method year
+
+Get the value of the year variable, which was set on object creation.  Immutable.
+
+=method ts
+
+Get the value of the ts variable.  This is a string value that is the date stamp added to each record. In theory, it is what will be entered into the database when you write each record into the db.  It should be the first day of the month (whether previous or current, as set by the past_month parameter) and the year.  Immutable.
+
+=method doc
+
+Get the parsed spreadsheet reference.  Immutable.
+
+=method header
+
+Get the value of the header object.  This is the result of processing the first row of the spreadsheet.  In some cases (more recent spreadsheets) the header will contain references to "internal_" variables.  Immutable.
+
+=method data
+
+Get the parsed status rows as an array ref.  You can probably write these to the database, as long as there are no unique key conflicts or whatever.  Immutable.
