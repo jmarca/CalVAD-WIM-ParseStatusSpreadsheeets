@@ -68,7 +68,7 @@ sub _build_doc {
   #carp $file;
 
   my $ref;
-  eval {$ref = ReadData ($file,'strip'=>3);};
+  eval {$ref = ReadData ($file,'strip'=>3,'attr'=>1);};
   if( $@ ){
     croak $@ ;
   }
@@ -171,17 +171,45 @@ sub _build_data {
     # check for a possible error
     if ( !$record->{'class_status'} || !$record->{'weight_status'} ) {
       # possible mistake
-      if ( ( $record->{'class_status'} || $record->{'weight_status'} )
-           || ( $record->{'class_notes'} || $record->{'weight_notes'} ) )
-        {
-          # um, oops!
-          carp Dumper  $record;
-          croak 'inconsistent data';
+        if ( !$record->{'class_status'} &&  $record->{'class_notes'} ){
+            # have a class note, but no class status
+            # try using the color of the note
+            my $cl = $sheet->{'cell'}->[$header->{'class_notes'}][$row];
+            my $attr = $sheet->{'attr'}->[$header->{'class_notes'}][$row];
+            my $fgcolor = $attr->{'fgcolor'};
+            carp Dumper [$record,$cl,$attr,$fgcolor];
+            if($fgcolor =~ /ff/){
+                $record->{'class_status'}='B'
+
+            }
+
+        }elsif( !$record->{'weight_status'} && $record->{'weight_notes'} ){
+            # have a weight note, but no weight status
+            # try using the color of the note
+            my $cl = $sheet->{'cell'}->[$header->{'weight_notes'}][$row];
+            my $attr = $sheet->{'attr'}->[$header->{'weight_notes'}][$row];
+            my $fgcolor = $attr->{'fgcolor'};
+            carp Dumper [$record,$cl,$attr,$fgcolor];
+            if($fgcolor =~ /ff/){
+                $record->{'weight_status'}='B'
+
+            }
         }
-      # otherwise, nothing to see here.  move along
-      carp 'nada';
-      next;
     }
+    ## check again
+    if ( !$record->{'class_status'} || !$record->{'weight_status'} ) {
+        if ( (!$record->{'class_status'}  && $record->{'class_notes'})
+             || (!$record->{'weight_status'} && $record->{'weight_notes'} )) {
+            carp Dumper $record;
+            croak 'Inconsistent data.  Check ',$self->file,' row ',$row;
+        }else{
+            # otherwise, nothing to see here.  move along
+            carp Dumper $record;
+            carp 'Skipping this row---no useful information ',$self->file,' row ',$row;
+            next;
+        }
+    }
+
     #    carp Dumper 'pushing ',$record;
     push @{$bulk},$record;
   }
