@@ -178,8 +178,11 @@ sub _build_data {
             my $attr = $sheet->{'attr'}->[$header->{'class_notes'}][$row];
             my $fgcolor = $attr->{'fgcolor'};
             carp Dumper [$record,$cl,$attr,$fgcolor];
-            if($fgcolor =~ /ff/){
-                $record->{'class_status'}='B'
+            if(! defined $fgcolor && $record->{'class_notes'} ){
+                $record->{'class_status'}='G';
+                carp 'fgcolor of note is undefined but the note exists; assuming good class status for row ',$row,' file ',$self->file;
+            }elsif($fgcolor =~ /ff/){
+                $record->{'class_status'}='B';
 
             }
 
@@ -190,8 +193,11 @@ sub _build_data {
             my $attr = $sheet->{'attr'}->[$header->{'weight_notes'}][$row];
             my $fgcolor = $attr->{'fgcolor'};
             carp Dumper [$record,$cl,$attr,$fgcolor];
-            if($fgcolor =~ /ff/){
-                $record->{'weight_status'}='B'
+            if(! defined $fgcolor && $record->{'weight_notes'} ){
+                $record->{'weight_status'}='G';
+                carp 'fgcolor of note is undefined but the note exists; assuming good weight status for row ',$row,' file ',$self->file;
+            }elsif($fgcolor =~ /ff/){
+                $record->{'weight_status'}='B';
 
             }
         }
