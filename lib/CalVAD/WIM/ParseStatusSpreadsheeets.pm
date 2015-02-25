@@ -93,37 +93,41 @@ sub _build_header {
   $col++;
   # start checking values
   my $cell = cr2cell ($col, $row);
-  #carp 'check for internal class notes ',$col, $cell, $sheet->{$cell};
+  # carp 'check for internal class notes ',$col,' ', $cell, ' -> ', $sheet->{$cell}, ' <- ';
+  # carp Dumper {'attr prior cell'=>$sheet->{'attr'}->[$col-1][$row],
+  #              'attr cell'=> $sheet->{'attr'}->[$col][$row] };
 
   my $value = $sheet->{$cell};
-  if($value =~ /class\s*notes/i){
-    # that means there is something I care about
-    $header->{'internal_class_notes'}=$col;
-    $col++;
+  if(($value && $value =~ /class\s*notes/i ) ||
+     $sheet->{'attr'}->[$col][$row]->{'merged'}){
+      # that means there is something I care about
+      $header->{'internal_class_notes'}=$col;
+      $col++;
   }
-  #$cell = cr2cell ($col, $row);
-  #carp 'check before internal past month ',$col, $cell, $sheet->{$cell};
+  # $cell = cr2cell ($col, $row);
+  # carp 'check before internal past month ',$col, $cell, $sheet->{$cell};
   if($self->past_month){
       $header->{'weight_status'}=$col;
       $col++; #skip the next month
   }else{
-    $col++; # skip the prior month
-    $header->{'weight_status'}=$col;
+      $col++; # skip the prior month
+      $header->{'weight_status'}=$col;
   }
   $col++;
-  #$cell = cr2cell ($col, $row);
-  #carp 'check for weight notes ',$col, $cell, $sheet->{$cell};
+  # $cell = cr2cell ($col, $row);
+  # carp 'check for weight notes ',$col, $cell, $sheet->{$cell};
   $header->{'weight_notes'}=$col;
   # verify?
 
   $col++;
   $cell = cr2cell ($col, $row);
   $value = $sheet->{$cell};
-  #carp 'check for internal weight notes ',$col, $cell, $value;
-  if($value && $value =~ /weight\s*notes/i){
-    # that means there is something I care about
-    $header->{'internal_weight_notes'}=$col;
-    $col++;
+  # carp 'check for internal weight notes ',$col, $cell, $value;
+  if( ($value && $value =~ /weight\s*notes/i) ||
+      $sheet->{'attr'}->[$col][$row]->{'merged'}){
+      # that means there is something I care about
+      $header->{'internal_weight_notes'}=$col;
+      $col++;
   }
   return $header;
 }

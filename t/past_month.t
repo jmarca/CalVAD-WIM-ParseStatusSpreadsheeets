@@ -49,4 +49,7 @@ if($@){
 }
 is($ts,'2013-07-01','timestamp not okay');
 
+# my $data = $obj->data;
+# carp Dumper $data;
+
 done_testing( 9 );
