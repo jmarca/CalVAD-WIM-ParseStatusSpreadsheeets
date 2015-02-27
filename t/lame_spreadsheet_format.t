@@ -65,4 +65,40 @@ if($@){
 }
 ok($data,'got data okay');
 
+##################################################
+# try again with past month true
+##################################################
+$obj = new_ok( 'CalVAD::WIM::ParseStatusSpreadsheeets' =>
+               [
+                'past_month'=>1,
+                'file'=>$file,
+                'year'=>2011,
+               ]
+             );
+$header  = $obj->header ;
+
+is_deeply($header,{
+                   site_no=>1,
+                   class_status=>4,
+                   class_notes=>5,
+                   # internal_class_notes=>undef,
+                   weight_status=>8,
+                   weight_notes=>9,
+                   # internal_weight_notes=>undef,
+                  }
+          ,'header is parsed into correct column definitions');
+
+
+# get the spreadsheet's date
+$ts = $obj->ts;
+
+is($ts,'2011-11-01','timestamp  okay');
+
+eval {$data = $obj->data; };
+if($@){
+        warn $@;
+}
+ok($data,'got data okay');
+
+
 done_testing;
