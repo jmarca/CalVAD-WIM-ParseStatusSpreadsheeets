@@ -23,6 +23,7 @@ CREATE TABLE wim_status (
     weight_status varchar not null REFERENCES wim_status_codes(status) on delete restrict,
     weight_notes varchar,
     internal_weight_notes varchar,
+    parser_decisions_notes varchar,
     primary key (site_no,ts)
 );
 
@@ -38,4 +39,9 @@ insert into wim_status_codes (status,description) values
     ('E','Evaluation in progress'),
     ('B/G','Bad Good?  Undefined in spreadsheet key, but used'),
     ('G/B','Good Bad?  Undefined in spreadsheet key, but used')
+;
+
+-- And now allowing 'UNDEFINED' too
+insert into wim_status_codes (status,description) values
+    ('UNDEFINED','Entry not defined in monthly status spreadsheet.')
 ;
