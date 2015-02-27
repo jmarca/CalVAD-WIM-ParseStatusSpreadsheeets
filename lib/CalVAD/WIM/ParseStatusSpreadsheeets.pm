@@ -8,9 +8,11 @@ use Moose;
 
 use Spreadsheet::Read;
 use Data::Dumper;
-use DateTime::Format::DateParse;
 use DateTime::Format::Pg;
+use DateTime::Format::Strptime;
 use Carp;
+
+
 
 has 'past_month' => (
                      is  => 'ro',
@@ -62,6 +64,31 @@ has 'ts' =>(
             builder => '_build_ts',
            );
 
+has 'site_cell' =>(
+    is=>'ro',
+    isa=>'Str',
+    lazy=>1,
+    builder=>'_build_site_cell',
+    );
+
+has 'first_data_row' => (
+    is  => 'ro',
+    isa => 'Int',
+    lazy=>1,
+    builder=>'_build_first_data_row',
+              );
+
+has 'month_cells' =>(
+    is=>'ro',
+    isa=>'ArrayRef',
+    lazy=>1,
+    builder=>'_build_month_cells',
+    );
+
+my $strp = DateTime::Format::Strptime->new(
+    pattern   => '%Y %B %d',
+    );
+
 sub _build_doc {
   my $self = shift;
   my $file = $self->file;
@@ -74,6 +101,7 @@ sub _build_doc {
   }
   return $ref;
 }
+
 
 sub _build_header {
   my $self = shift;
@@ -132,20 +160,281 @@ sub _build_header {
   return $header;
 }
 
+sub _build_site_cell{
+    my $self=shift;
+    # scan for "site" and figure out the column for site, then scan
+    # rows and find the first row that has site number, and then the
+    # rows before that are header rows.
+    my $site_column = 0;
+    my $site_row = 0;
+
+    my $sheet = $self->doc->[1];
+  OUTER: for my $column (@{$sheet->{'cell'}}) {
+    INNER: for my $cell (@{$column}) {
+        if($cell && $cell =~ /^site$/i ){
+            last OUTER ;
+        }
+        $site_row++;
+    }
+      $site_column++;
+
+  }
+    return cr2cell($site_column,$site_row);
+}
+
+sub _build_first_data_row {
+
+    # know which column the site is defined, look for the first row
+    # with a numeric value.  back up one.  those are the header rows.
+    my $self = shift;
+    my ( $col, $row ) = cell2cr( $self->site_cell );
+    my $sheet      = $self->doc->[1];
+    my $header_end = 0;
+    my $column     = $sheet->{'cell'}[$col];
+  OUTER: for my $cell ( @{$column} ) {
+        if ( $header_end <= $row ) {
+            $header_end++;
+            next OUTER;
+
+        }
+        if ( $cell && $cell =~ /^\d+$/ ) {
+            last OUTER;
+        }
+        $header_end++;
+    }
+
+    # we've found the first number
+    return $header_end;
+
+}
+
+#
+# in the first two rows, somewhere month is defined.  **usually** it
+# is prior month and current month, and they are next to each other.
+# 2011 november it is broken, just one month, and with 1 to 14, 15 to
+# 30.  So that means I have to hunt around for which column has the
+# month, and in that case, which day it represents.
+#
+sub _build_month_cells{
+    my $self=shift;
+    my $sheet = $self->doc->[1];             # first datasheet
+
+    # scan the first row and the second row for "month-alike" character strings
+    my $data_row = $self->first_data_row;
+    my $header_end = $data_row - 1;
+    my ( $site_col, $site_row ) = cell2cr( $self->site_cell );
+    # placeholders for month columns
+    my $months = [0,0,0,0];
+    my $idx = 0;
+    my $current_column = 0;
+    # the month can be in any row from 1 to $data_row
+    # the month can be in any column from site_col to end.
+  OUTER: for my $column (@{$sheet->{'cell'}}){
+      if($current_column  <= $site_col){
+          $current_column++;
+          next OUTER;
+      }
+      # test current cell for a month-alike string
+    INNER: for my $row(1..$header_end){
+        my $candidate = $column->[$row];
+        if($candidate){
+            # carp $candidate;
+            my $dt = $strp->parse_datetime("1970 $candidate 1");
+            if($dt){
+                $months->[$idx]=cr2cell($current_column,$row);
+                $idx++;
+                if($idx >= scalar @{$months}){
+                    last OUTER;
+                }
+            }
+        }
+    }
+      $current_column++;
+  }
+
+    return $months;
+
+}
+
+#
+# in the header rows, somewhere "class notes" and "weight notes" are
+# defined
+#
+sub _build_notes_cells {
+    my $self  = shift;
+    my $sheet = $self->doc->[1];    # first datasheet
+
+    # scan the first row and the second row for "month-alike" character strings
+    my $data_row   = $self->first_data_row;
+    my $header_end = $data_row - 1;
+    my ( $site_col, $site_row ) = cell2cr( $self->site_cell );
+
+    # placeholders for month columns
+    my $months          = $self->month_cells;
+    my $first_month_col = ( cell2cr( $months->[0] ) )[0];
+    my $notes           = [ 0, 0, 0, 0 ];
+    my $idx             = 0;
+    my $current_column  = 0;
+
+    ## and finally, know whether this is the dreaded "split month" case
+    my $split_month = $self->_split_month_check();
+    my $firstrow = [Spreadsheet::Read::cellrow($sheet,1)];
+    my $secondrow = [Spreadsheet::Read::cellrow($sheet,2)];
+    # carp Dumper {'1'=>$firstrow,'2',$secondrow};
+    # the class/weight notes can be in any row from 1 to $data_row
+    # and any column, but typically greater or equal to month
+  OUTER: for my $column_number ( $first_month_col .. scalar @{ $sheet->{'cell'} } -1 ) {
+      if ( $idx >= scalar @{$notes} ) {
+
+            last OUTER;
+      }
+
+      my $column = $sheet->{'cell'}[$column_number];
+      # carp "continuing, index = $idx, $column_number";
+
+        # test current cell for "class notes" or "weight notes"
+      INNER: for my $row ( 1 .. $header_end ) {
+          my $candidate = $column->[$row];
+          # carp "col=$column_number, candidate=$candidate";
+            if ( $candidate && $candidate =~ /notes/i ) {
+                # carp 'matched notes';
+                # make sure on right index
+                if ( $candidate =~ /weight/i && $idx < 2 ) {
+                    # carp 'matched weight';
+                    $idx = 2;
+                }
+
+                # at this point, logic is same for weight and class.
+                # Using $idx as a pointer to the correct point in the
+                # $notes arrayref
+                if ($split_month) {
+                    # carp 'split month';
+                    # split month, 1 to 14, then 15 to 30
+
+                    # in the split month case that I've seen then the
+                    # class notes cell is merge of 4 columns, with
+                    # status in +0 and +2, note data in +1 and +3
+                    # carp "writing to $idx, $column_number";
+                    $notes->[$idx] =
+                        $self->past_month
+                      ? $column_number + 1
+                      : $column_number + 3;
+                    $idx += 2;              #skip internal class notes slot
+                    $column_number += 4;
+                    # carp Dumper {'notes'=>$notes};
+                    next OUTER;
+                }
+                else {
+                    # carp 'not split month case';
+                    # in the not split month case, we either have a
+                    # single column for class notes, or it extends
+                    # over two columns and the second is the internal
+                    # class notes.
+
+                    # so check if cell is merged right
+                    if (
+                        $self->_is_merged_right_check(
+                            {
+                                'col' => $column_number,
+                                'row' => $row,
+                            }
+                        )
+                      )
+                    {
+                        # is merged right, so second col is "internal notes"
+                        $notes->[$idx] = $column_number;
+                        $idx++;
+
+                        # internal notes
+                        $notes->[$idx] = $column_number + 1;
+                        $idx++;
+                        $column_number += 2;
+                        next OUTER;
+                    }
+                    else {
+                        # cell is not merged right, just stash current indexed
+                        $notes->[$idx] = $column_number;
+                        $idx++;
+                        $column_number++;
+                        next OUTER;
+                    }
+
+                }
+            }
+        }
+        $column_number++;
+    }
+    # carp Dumper {'notes'=>$notes};
+    return $notes;
+
+}
+
+sub _split_month_check {
+    my $self = shift;
+    my $sheet = $self->doc->[1];             # f1irst datasheet
+    my $prior_month = $sheet->{$self->month_cells->[0]};
+    my $curr_month = $sheet->{$self->month_cells->[1]};
+    my $prior_dt = $strp->parse_datetime("1970 $prior_month 1");
+    my $curr_dt  = $strp->parse_datetime("1970 $curr_month 1");
+    return $prior_dt eq $curr_dt;
+}
+
+sub _is_merged_right_check {
+    my $self = shift;
+    my $args = shift;
+    my $col = $args->{'col'};
+    my $row = $args->{'row'};
+    my $sheet = $self->doc->[1];
+
+    # basically, check if col,row is merged, and if col+1, row is both
+    # empty and merged.  If so, the assumption is that we're merged
+    # together
+    #
+    # this is not forever true, because there are several degenerate
+    # cases.  However, I don't have those (yet) in practice, so I'll
+    # ignore them for now and pop up a new test case if I ever hit
+    # them
+    #
+    my $merged = $sheet->{'attr'}->[$col][$row]->{'merged'};
+    my $right_value = $sheet->{cr2cell($col+1,$row)};
+    my $right_merged = $sheet->{'attr'}->[$col+1][$row]->{'merged'};
+    #
+    # if all are true
+    #
+
+    return $merged && !$right_value && $right_merged;
+}
+
 sub _build_ts {
   my $self = shift;
 
   my $sheet = $self->doc->[1];             # first datasheet
 
-  my $month = $sheet->{'E1'};
-  if($self->past_month){
-    $month = $sheet->{'D1'};
+  my $prior_month = $sheet->{$self->month_cells->[0]};
+  my $curr_month = $sheet->{$self->month_cells->[1]};
+  my $year = $self->year;
+
+  # two cases.
+  #
+  # First case there is a prior month and a past month
+  #
+  my $prior_dt = $strp->parse_datetime("$year $prior_month 1");
+  my $curr_dt  = $strp->parse_datetime("$year $curr_month 1");
+
+  if($prior_dt eq $curr_dt){
+      # the same date means the same month.  So past_month flag means
+      # use the first, and the current_month flag means use the 15th
+      if(!$self->past_month){
+          $curr_dt  = $strp->parse_datetime("$year $curr_month 15");
+      }
   }
 
-  my $year = $self->year;
-  my $ts = DateTime::Format::DateParse->parse_datetime("$month 1, $year");
-  #  carp "$month 1, $year:  ", $ts;
-  return DateTime::Format::Pg->format_date($ts);
+  if($self->past_month){
+      return DateTime::Format::Pg->format_date($prior_dt);
+  }else{
+      return DateTime::Format::Pg->format_date($curr_dt);
+  }
+  return; # error to get here, by the way
 }
 
 sub _build_data {
@@ -181,7 +470,7 @@ sub _build_data {
             my $cl = $sheet->{'cell'}->[$header->{'class_notes'}][$row];
             my $attr = $sheet->{'attr'}->[$header->{'class_notes'}][$row];
             my $fgcolor = $attr->{'fgcolor'};
-            carp Dumper [$record,$cl,$attr,$fgcolor];
+            # carp Dumper [$record,$cl,$attr,$fgcolor];
             if(! defined $fgcolor && $record->{'class_notes'} ){
                 $record->{'class_status'}='G';
                 carp 'fgcolor of note is undefined but the note exists; assuming good class status for row ',$row,' file ',$self->file;
@@ -196,7 +485,7 @@ sub _build_data {
             my $cl = $sheet->{'cell'}->[$header->{'weight_notes'}][$row];
             my $attr = $sheet->{'attr'}->[$header->{'weight_notes'}][$row];
             my $fgcolor = $attr->{'fgcolor'};
-            carp Dumper [$record,$cl,$attr,$fgcolor];
+            # carp Dumper [$record,$cl,$attr,$fgcolor];
             if(! defined $fgcolor && $record->{'weight_notes'} ){
                 $record->{'weight_status'}='G';
                 carp 'fgcolor of note is undefined but the note exists; assuming good weight status for row ',$row,' file ',$self->file;
