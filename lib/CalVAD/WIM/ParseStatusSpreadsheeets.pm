@@ -462,10 +462,13 @@ sub _build_data {
             if(! defined $fgcolor && $record->{'class_notes'} ){
                 $record->{'class_status'}='G';
                 carp 'fgcolor of note is undefined but the note exists; assuming good class status for row ',$row,' file ',$self->file;
+                $record->{'parser_decisions_notes'} .= 'Setting UNDEFINED class status to G based on black or undefined class note color.  ';
             }elsif($fgcolor =~ /ff/){
                 $record->{'class_status'}='B';
+                $record->{'parser_decisions_notes'} .= "Setting UNDEFINED class status to B based on RED ($fgcolor) class note color.  ";
             }else{
                 carp 'color of entry unhelpful', $fgcolor;
+                $record->{'parser_decisions_notes'} .= "Color $fgcolor for class note color not yet related to a status.  ";
 
             }
 
@@ -479,11 +482,14 @@ sub _build_data {
             if(! defined $fgcolor && $record->{'weight_notes'} ){
                 $record->{'weight_status'}='G';
                 carp 'fgcolor of note is undefined but the note exists; assuming good weight status for row ',$row,' file ',$self->file;
-            }elsif($fgcolor =~ /ff/){
-                $record->{'weight_status'}='B';
+                $record->{'parser_decisions_notes'} .= 'Setting UNDEFINED weight status to G based on black or undefined weight note color.  ';
 
+            }elsif($fgcolor =~ /^#ff/){
+                $record->{'weight_status'}='B';
+                $record->{'parser_decisions_notes'} .= "Setting UNDEFINED weight status to B based on RED ($fgcolor) weight note color.  ";
             }else{
                 carp 'color of entry unhelpful', $fgcolor;
+                $record->{'parser_decisions_notes'} .= "Color $fgcolor for weight note color not yet related to a status.  ";
             }
         }
     }
@@ -491,6 +497,7 @@ sub _build_data {
 
     if ( !$record->{'class_status'} && $self->write_undefined ) {
         $record->{'class_status'} = 'UNDEFINED';
+        $record->{'parser_decisions_notes'} .= 'Forcing UNDEFINED on blank class status.  ';
         # if ( $record->{'class_notes'} ){
         #     carp Dumper $record;
         #     carp 'Inconsistent data.  Check '
@@ -499,6 +506,7 @@ sub _build_data {
     }
     if( !$record->{'weight_status'} && $self->write_undefined ) {
         $record->{'weight_status'} = 'UNDEFINED';
+        $record->{'parser_decisions_notes'} .= 'Forcing UNDEFINED on blank weight status.  ';
         # if ( $record->{'weight_notes'} ){
         #     carp Dumper $record;
         #     carp 'Inconsistent data.  Check '

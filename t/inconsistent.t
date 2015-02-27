@@ -151,7 +151,7 @@ is_deeply($header,{
           ,'puke');
 
 # get data
-$warnings = [warnings { $obj->data; }];
+$warnings = [warnings { $data = $obj->data; }];
 is(scalar @{$warnings},46,"got expected number of warnings from this badly broken $file");
 ok($data,'got data okay');
 
@@ -164,9 +164,25 @@ $obj = CalVAD::WIM::ParseStatusSpreadsheeets->new(
         'year'            => 2010,
     }
 );
-$warnings = [warnings { $obj->data; }];
+$warnings = [warnings { $data = $obj->data; }];
 is(scalar @{$warnings},95,"got expected number of warnings from this badly broken $file");
+
 ok($data,'got data okay');
 
+# each of the warnings should correspond to a record with a note about
+# the parser decision
+
+my @notes = ();
+for (@{$data}){
+    if($_->{'parser_decisions_notes'}){
+        push @notes, $_->{'parser_decisions_notes'};
+    }
+}
+is(@notes,100,'got expected number of parser notes in result');
+
+# note that the "RED == B" type assignments do not generate a
+# carp/warning, but they do generate a note.  There are 100 blank
+# entries for weight status in that file, but 5 of them have a red
+# weight notes entry.
 
 done_testing();
