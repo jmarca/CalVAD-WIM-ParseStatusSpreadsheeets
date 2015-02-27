@@ -482,21 +482,27 @@ sub _build_data {
             }
         }
     }
-    ## check again
-    if ( !$record->{'class_status'} || !$record->{'weight_status'} ) {
-        if ( (!$record->{'class_status'}  && $record->{'class_notes'})
-             || (!$record->{'weight_status'} && $record->{'weight_notes'} )) {
-            carp Dumper $record;
-            croak 'Inconsistent data.  Check ',$self->file,' row ',$row;
-        }else{
-            # otherwise, nothing to see here.  move along
-            carp Dumper $record;
-            carp 'Skipping this row---no useful information ',$self->file,' row ',$row;
-            next;
-        }
-    }
+    ## check again, inserting "undefined" to flag the need for manual checking in DB
 
-    #    carp Dumper 'pushing ',$record;
+    if ( !$record->{'class_status'} ) {
+        $record->{'class_status'} = 'UNDEFINED';
+        # if ( $record->{'class_notes'} ){
+        #     carp Dumper $record;
+        #     carp 'Inconsistent data.  Check '
+        # }
+
+    }
+    if( !$record->{'weight_status'} ) {
+        $record->{'weight_status'} = 'UNDEFINED';
+        # if ( $record->{'weight_notes'} ){
+        #     carp Dumper $record;
+        #     carp 'Inconsistent data.  Check '
+        # }
+    }
+    if ($record->{'class_status'} eq 'UNDEFINED' ||
+        $record->{'weight_status'} eq 'UNDEFINED'){
+        carp 'Setting at least one status to undefined.  Needs check: ',$self->file, Dumper $record;
+    }
     push @{$bulk},$record;
   }
   continue {

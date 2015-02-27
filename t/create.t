@@ -1,8 +1,8 @@
-use Test::More; # see done_testing()
+use Test::Modern; # see done_testing()
 use Carp;
 use Data::Dumper;
 
-require_ok( 'CalVAD::WIM::ParseStatusSpreadsheeets' );
+use CalVAD::WIM::ParseStatusSpreadsheeets;
 
 my $obj;
 eval { $obj = CalVAD::WIM::ParseStatusSpreadsheeets->new(); };
@@ -61,7 +61,7 @@ eval {$ts = $obj->ts; };
 if($@){
         warn $@;
 }
-is($ts,'2013-08-01','timestamp not okay');
+is($ts,'2013-08-01','timestamp okay');
 
 # try the data array
 
@@ -113,7 +113,7 @@ eval {$ts = $obj->ts; };
 if($@){
         warn $@;
 }
-is($ts,'2009-08-01','timestamp not okay');
+is($ts,'2009-08-01','timestamp okay');
 
 # try the data array
 

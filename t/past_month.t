@@ -1,16 +1,19 @@
-use Test::More; # see done_testing()
+use Test::Modern; # see done_testing()
 use Carp;
 use Data::Dumper;
 
-require_ok( 'CalVAD::WIM::ParseStatusSpreadsheeets' );
+use CalVAD::WIM::ParseStatusSpreadsheeets;
 
 my $obj;
+my $header;
+my $ts;
+
 eval { $obj = CalVAD::WIM::ParseStatusSpreadsheeets->new(); };
 
 is($obj, undef, "object failed creation as expected");
 
 my $file = File::Spec->rel2abs('./t/files/IRD 08-2013 MONTHLY SITE STATUSBA.xlsx');
-my $obj = new_ok( 'CalVAD::WIM::ParseStatusSpreadsheeets' =>
+$obj = new_ok( 'CalVAD::WIM::ParseStatusSpreadsheeets' =>
                [
                 'past_month'=>1,
                 'file'=>$file,
@@ -47,7 +50,7 @@ eval {$ts = $obj->ts; };
 if($@){
         warn $@;
 }
-is($ts,'2013-07-01','timestamp not okay');
+is($ts,'2013-07-01','timestamp okay');
 
 # my $data = $obj->data;
 # carp Dumper $data;

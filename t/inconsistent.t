@@ -1,13 +1,17 @@
-use Test::More; # see done_testing()
+use Test::Modern; # see done_testing()
 use Carp;
 use Data::Dumper;
 
-require_ok( 'CalVAD::WIM::ParseStatusSpreadsheeets' );
+use CalVAD::WIM::ParseStatusSpreadsheeets;
 
 my $obj;
+my $ts;
+my $data;
+my $header;
+my $warnings;
 
 my $file = File::Spec->rel2abs('./t/files/IRD 04-2009 MONTHLY SITE STATUS.xls');
-my $obj = new_ok( 'CalVAD::WIM::ParseStatusSpreadsheeets' =>
+$obj = new_ok( 'CalVAD::WIM::ParseStatusSpreadsheeets' =>
                [
                 'past_month'=>0,
                 'file'=>$file,
@@ -45,11 +49,9 @@ if($@){
 is($ts,'2009-04-01','timestamp not okay');
 
 # get data
-my $data;
-eval {$data = $obj->data; };
-if($@){
-        warn $@;
-}
+$warnings = [warnings { $data = $obj->data; }];
+is(scalar @{$warnings},0,"got expected number of warnings from $file");
+
 ok($data,'got data okay');
 
 ##################################################
@@ -95,10 +97,47 @@ if($@){
 is($ts,'2009-11-01','timestamp not okay');
 
 # get data
-my $data;
-eval {$data = $obj->data; };
-if($@){
-        warn $@;
-}
+$warnings = [warnings { $data = $obj->data; }];
+is(scalar @{$warnings},3,"got expected number of warnings from $file");
+
 ok($data,'got data okay');
-done_testing( 17 );
+
+##################################################
+# try another inconsistent file
+##################################################
+
+$file = File::Spec->rel2abs('./t/files/ird 02-2010 monthly site status_binyu.xls');
+$obj = new_ok( 'CalVAD::WIM::ParseStatusSpreadsheeets' =>
+               [
+                'past_month'=>0,
+                'file'=>$file,
+                'year'=>2010,
+               ]
+             );
+
+can_ok($obj,qw/past_month file year doc header data ts/);
+
+# try the header
+eval { $header = $obj->header ;} ;
+if($@) {
+  warn $@;
+}
+
+is_deeply($header,{
+                   site_no=>1,
+                   class_status=>5,
+                   class_notes=>6,
+                   weight_status=>8,
+                   weight_notes=>9,
+                  }
+          ,'puke');
+
+# get data
+$warnings = [warnings { $obj->data; }];
+is(scalar @{$warnings},95,"got expected number of warnings from this badly broken $file");
+
+
+ok($data,'got data okay');
+
+
+done_testing();
