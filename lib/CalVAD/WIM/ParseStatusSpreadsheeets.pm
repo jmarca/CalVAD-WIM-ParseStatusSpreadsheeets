@@ -85,6 +85,13 @@ has 'month_cells' =>(
     builder=>'_build_month_cells',
     );
 
+has 'notes_cells' =>(
+    is=>'ro',
+    isa=>'ArrayRef',
+    lazy=>1,
+    builder=>'_build_notes_cells',
+    );
+
 my $strp = DateTime::Format::Strptime->new(
     pattern   => '%Y %B %d',
     );
@@ -104,60 +111,36 @@ sub _build_doc {
 
 
 sub _build_header {
-  my $self = shift;
-  my $sheet = $self->doc->[1];
-  my $col = 1;
-  my $row = 1;
-  # look at the first row for the header
-  my $header = {'site_no'=>1};
-  if($self->past_month){
-    $header->{'class_status'}=4;
-  }else{
-    $header->{'class_status'}=5;
-  }
-  $col=6;
-  # verify?
-  $header->{'class_notes'}=$col;
-  $col++;
-  # start checking values
-  my $cell = cr2cell ($col, $row);
-  # carp 'check for internal class notes ',$col,' ', $cell, ' -> ', $sheet->{$cell}, ' <- ';
-  # carp Dumper {'attr prior cell'=>$sheet->{'attr'}->[$col-1][$row],
-  #              'attr cell'=> $sheet->{'attr'}->[$col][$row] };
+    my $self  = shift;
+    my $sheet = $self->doc->[1];
 
-  my $value = $sheet->{$cell};
-  if(($value && $value =~ /class\s*notes/i ) ||
-     $sheet->{'attr'}->[$col][$row]->{'merged'}){
-      # that means there is something I care about
-      $header->{'internal_class_notes'}=$col;
-      $col++;
-  }
-  # $cell = cr2cell ($col, $row);
-  # carp 'check before internal past month ',$col, $cell, $sheet->{$cell};
-  if($self->past_month){
-      $header->{'weight_status'}=$col;
-      $col++; #skip the next month
-  }else{
-      $col++; # skip the prior month
-      $header->{'weight_status'}=$col;
-  }
-  $col++;
-  # $cell = cr2cell ($col, $row);
-  # carp 'check for weight notes ',$col, $cell, $sheet->{$cell};
-  $header->{'weight_notes'}=$col;
-  # verify?
+    # use other elements to build up the header
 
-  $col++;
-  $cell = cr2cell ($col, $row);
-  $value = $sheet->{$cell};
-  # carp 'check for internal weight notes ',$col, $cell, $value;
-  if( ($value && $value =~ /weight\s*notes/i) ||
-      $sheet->{'attr'}->[$col][$row]->{'merged'}){
-      # that means there is something I care about
-      $header->{'internal_weight_notes'}=$col;
-      $col++;
-  }
-  return $header;
+    my $header = {
+        'site_no'      => ( cell2cr( $self->site_cell ) )[0],
+        'class_notes'  => $self->notes_cells->[0],
+        'weight_notes' => $self->notes_cells->[2],
+    };
+
+    # test for prior month choice to pick off correct status columns
+    if ( $self->past_month ) {
+        $header->{'class_status'}  = ( cell2cr( $self->month_cells->[0] ) )[0];
+        $header->{'weight_status'} = ( cell2cr( $self->month_cells->[2] ) )[0];
+    }
+    else {
+        $header->{'class_status'}  = ( cell2cr( $self->month_cells->[1] ) )[0];
+        $header->{'weight_status'} = ( cell2cr( $self->month_cells->[3] ) )[0];
+    }
+
+    # are there internal notes on this spreadsheet?
+    if ( $self->notes_cells->[1] ) {
+        $header->{'internal_class_notes'} = $self->notes_cells->[1];
+    }
+    if ( $self->notes_cells->[3] ) {
+        $header->{'internal_weight_notes'} = $self->notes_cells->[3];
+    }
+
+    return $header;
 }
 
 sub _build_site_cell{
@@ -476,6 +459,8 @@ sub _build_data {
                 carp 'fgcolor of note is undefined but the note exists; assuming good class status for row ',$row,' file ',$self->file;
             }elsif($fgcolor =~ /ff/){
                 $record->{'class_status'}='B';
+            }else{
+                carp 'color of entry unhelpful', $fgcolor;
 
             }
 
@@ -492,6 +477,8 @@ sub _build_data {
             }elsif($fgcolor =~ /ff/){
                 $record->{'weight_status'}='B';
 
+            }else{
+                carp 'color of entry unhelpful', $fgcolor;
             }
         }
     }

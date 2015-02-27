@@ -37,12 +37,12 @@ my $header  = $obj->header ;
 
 is_deeply($header,{
                    site_no=>1,
-                   class_status=>5,
-                   class_notes=>6,
-                   internal_class_notes=>7,
-                   weight_status=>9,
-                   weight_notes=>10,
-                   internal_weight_notes=>11,
+                   class_status=>6,
+                   class_notes=>7,
+                   # internal_class_notes=>undef,
+                   weight_status=>10,
+                   weight_notes=>11,
+                   # internal_weight_notes=>undef,
                   }
           ,'header is parsed into correct column definitions');
 
@@ -56,12 +56,13 @@ is($ts,'2011-11-15','timestamp  okay');
 my $notes_array = $obj->_build_notes_cells;
 
 is_deeply($notes_array,[7,0,11,0,],'got notes in right places');
-# # get data
-# my $data;
-# eval {$data = $obj->data; };
-# if($@){
-#         warn $@;
-# }
-# ok($data,'got data okay');
+
+# get data
+my $data;
+eval {$data = $obj->data; };
+if($@){
+        warn $@;
+}
+ok($data,'got data okay');
 
 done_testing;
