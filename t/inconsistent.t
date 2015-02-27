@@ -13,6 +13,7 @@ my $warnings;
 my $file = File::Spec->rel2abs('./t/files/IRD 04-2009 MONTHLY SITE STATUS.xls');
 $obj = new_ok( 'CalVAD::WIM::ParseStatusSpreadsheeets' =>
                [
+                'write_undefined'=>0,
                 'past_month'=>0,
                 'file'=>$file,
                 'year'=>2009,
@@ -61,6 +62,7 @@ ok($data,'got data okay');
 $file = File::Spec->rel2abs('./t/files/IRD 11-2009 MONTHLY SITE STATUS.xls');
 $obj = new_ok( 'CalVAD::WIM::ParseStatusSpreadsheeets' =>
                [
+                'write_undefined'=>0,
                 'past_month'=>0,
                 'file'=>$file,
                 'year'=>2009,
@@ -98,8 +100,23 @@ is($ts,'2009-11-01','timestamp not okay');
 
 # get data
 $warnings = [warnings { $data = $obj->data; }];
-is(scalar @{$warnings},3,"got expected number of warnings from $file");
+is(scalar @{$warnings},1,"got expected number of warnings from $file");
 
+ok($data,'got data okay');
+
+
+# try again with write_undefined switched on
+$obj = CalVAD::WIM::ParseStatusSpreadsheeets->new(
+    {
+        'write_undefined' => 1,
+        'past_month'      => 0,
+        'file'            => $file,
+        'year'            => 2009,
+    }
+);
+# get data
+$warnings = [warnings { $data = $obj->data; }];
+is(scalar @{$warnings},3,"got expected number of warnings from $file");
 ok($data,'got data okay');
 
 ##################################################
@@ -107,13 +124,14 @@ ok($data,'got data okay');
 ##################################################
 
 $file = File::Spec->rel2abs('./t/files/ird 02-2010 monthly site status_binyu.xls');
-$obj = new_ok( 'CalVAD::WIM::ParseStatusSpreadsheeets' =>
-               [
-                'past_month'=>0,
-                'file'=>$file,
-                'year'=>2010,
-               ]
-             );
+$obj = CalVAD::WIM::ParseStatusSpreadsheeets->new(
+    {
+        'write_undefined' => 0,
+        'past_month'      => 0,
+        'file'            => $file,
+        'year'            => 2010,
+    }
+);
 
 can_ok($obj,qw/past_month file year doc header data ts/);
 
@@ -134,9 +152,20 @@ is_deeply($header,{
 
 # get data
 $warnings = [warnings { $obj->data; }];
+is(scalar @{$warnings},46,"got expected number of warnings from this badly broken $file");
+ok($data,'got data okay');
+
+# try again with write_undefined set to true
+$obj = CalVAD::WIM::ParseStatusSpreadsheeets->new(
+    {
+        'write_undefined' => 1,
+        'past_month'      => 0,
+        'file'            => $file,
+        'year'            => 2010,
+    }
+);
+$warnings = [warnings { $obj->data; }];
 is(scalar @{$warnings},95,"got expected number of warnings from this badly broken $file");
-
-
 ok($data,'got data okay');
 
 

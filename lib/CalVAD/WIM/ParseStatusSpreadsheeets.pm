@@ -13,6 +13,11 @@ use DateTime::Format::Strptime;
 use Carp;
 
 
+has 'write_undefined' => (
+    is => 'ro',
+    isa => 'Bool',
+    required => 1,
+    );
 
 has 'past_month' => (
                      is  => 'ro',
@@ -484,7 +489,7 @@ sub _build_data {
     }
     ## check again, inserting "undefined" to flag the need for manual checking in DB
 
-    if ( !$record->{'class_status'} ) {
+    if ( !$record->{'class_status'} && $self->write_undefined ) {
         $record->{'class_status'} = 'UNDEFINED';
         # if ( $record->{'class_notes'} ){
         #     carp Dumper $record;
@@ -492,7 +497,7 @@ sub _build_data {
         # }
 
     }
-    if( !$record->{'weight_status'} ) {
+    if( !$record->{'weight_status'} && $self->write_undefined ) {
         $record->{'weight_status'} = 'UNDEFINED';
         # if ( $record->{'weight_notes'} ){
         #     carp Dumper $record;
