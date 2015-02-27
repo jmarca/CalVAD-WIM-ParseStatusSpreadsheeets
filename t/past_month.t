@@ -16,6 +16,7 @@ my $file = File::Spec->rel2abs('./t/files/IRD 08-2013 MONTHLY SITE STATUSBA.xlsx
 $obj = new_ok( 'CalVAD::WIM::ParseStatusSpreadsheeets' =>
                [
                 'past_month'=>1,
+                'write_undefined' => 0,
                 'file'=>$file,
                 'year'=>2013,
                ]
