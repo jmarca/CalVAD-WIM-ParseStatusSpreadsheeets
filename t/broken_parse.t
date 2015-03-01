@@ -12,14 +12,13 @@ my $header;
 ##################################################
 
 my $file = File::Spec->rel2abs('./t/files/ird 09-2010 monthly site status.xls');
-$obj = new_ok( 'CalVAD::WIM::ParseStatusSpreadsheeets' =>
-               [
-                'write_undefined' => 0,
-                'past_month'=>0,
-                'file'=>$file,
-                'year'=>2011,
-               ]
-             );
+$obj = CalVAD::WIM::ParseStatusSpreadsheeets->new
+    (
+             'write_undefined' => 0,
+             'past_month'=>0,
+             'file'=>$file,
+             'year'=>2011,
+    );
 
 $header  = $obj->header ;
 
