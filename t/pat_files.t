@@ -11,7 +11,7 @@ my $header;
 # pat chokes
 ##################################################
 
-my $file = File::Spec->rel2abs('./files/pat 01-2010 monthly site status.xls');
+my $file = File::Spec->rel2abs('./t/files/pat 01-2010 monthly site status.xls');
 $obj = CalVAD::WIM::ParseStatusSpreadsheeets->new
     (
              'write_undefined' => 0,
