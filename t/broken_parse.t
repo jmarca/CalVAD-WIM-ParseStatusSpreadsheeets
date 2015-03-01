@@ -17,7 +17,7 @@ $obj = CalVAD::WIM::ParseStatusSpreadsheeets->new
              'write_undefined' => 0,
              'past_month'=>0,
              'file'=>$file,
-             'year'=>2011,
+             'year'=>2010,
     );
 
 $header  = $obj->header ;
