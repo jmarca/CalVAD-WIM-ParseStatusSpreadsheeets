@@ -187,6 +187,7 @@ sub _build_first_data_row {
         }
         if ( $cell && $cell =~ /^\d+$/ ) {
             last OUTER;
+
         }
         $header_end++;
     }
@@ -227,13 +228,18 @@ sub _build_month_cells{
         my $candidate = $column->[$row];
         if($candidate){
             # carp $candidate;
-            my $dt = $strp->parse_datetime("1970 $candidate 1");
+            my $three = substr($candidate,0,3);
+            my $dt = $strp->parse_datetime("1970 $three 1");
+
             if($dt){
                 $months->[$idx]=cr2cell($current_column,$row);
                 $idx++;
+                # carp "added a month, next index is $idx";
                 if($idx >= scalar @{$months}){
                     last OUTER;
                 }
+            }else{
+                # carp "date time didn't recognize 1970 $candidate 1";
             }
         }
     }
@@ -361,7 +367,9 @@ sub _split_month_check {
     my $self = shift;
     my $sheet = $self->doc->[1];             # f1irst datasheet
     my $prior_month = $sheet->{$self->month_cells->[0]};
+    $prior_month = substr($prior_month,0,3);
     my $curr_month = $sheet->{$self->month_cells->[1]};
+    $curr_month = substr($curr_month,0,3);
     my $prior_dt = $strp->parse_datetime("1970 $prior_month 1");
     my $curr_dt  = $strp->parse_datetime("1970 $curr_month 1");
     return $prior_dt eq $curr_dt;
@@ -399,7 +407,9 @@ sub _build_ts {
   my $sheet = $self->doc->[1];             # first datasheet
 
   my $prior_month = $sheet->{$self->month_cells->[0]};
+  $prior_month = substr($prior_month,0,3);
   my $curr_month = $sheet->{$self->month_cells->[1]};
+  $curr_month = substr($curr_month,0,3);
   my $year = $self->year;
 
   # two cases.
