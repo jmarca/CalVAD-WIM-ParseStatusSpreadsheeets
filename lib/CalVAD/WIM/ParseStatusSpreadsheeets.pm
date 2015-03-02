@@ -478,7 +478,7 @@ sub _build_data {
       if($record->{$_}){
           $record->{$_} =~ s/\s*\/\s*/\//g;
       }
-      if($_ =~ /notes/){
+      if($_ =~ /notes/ &&  $record->{$_}){
           $record->{$_} = $self->expand_abbrev($record->{$_});
       }
     }
