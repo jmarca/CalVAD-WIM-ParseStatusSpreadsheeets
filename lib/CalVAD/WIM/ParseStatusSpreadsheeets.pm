@@ -518,7 +518,7 @@ sub _build_data {
         # }
 
     }
-    if((!$record->{'weight_status'} || $record->{'weight_status'} eq '?'))
+    if((!$record->{'weight_status'} || $record->{'weight_status'} eq '?')
         && $self->write_undefined ) {
         $record->{'weight_status'} = 'UNDEFINED';
         $record->{'parser_decisions_notes'} .= 'Forcing UNDEFINED on blank weight status.  ';
