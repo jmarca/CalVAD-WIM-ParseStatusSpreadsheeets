@@ -150,16 +150,17 @@ sub _build_header {
 
 sub _build_site_cell{
     my $self=shift;
-    # scan for "site" and figure out the column for site, then scan
-    # rows and find the first row that has site number, and then the
-    # rows before that are header rows.
+    # scan for first instance of "^site" and figure out the column for
+    # site, then scan rows and find the first row that has site
+    # number, and then the rows before that are header rows.
     my $site_column = 0;
     my $site_row = 0;
 
     my $sheet = $self->doc->[1];
   OUTER: for my $column (@{$sheet->{'cell'}}) {
     INNER: for my $cell (@{$column}) {
-        if($cell && $cell =~ /^site$/i ){
+        # carp "cell is $cell, looking for site";
+        if($cell && $cell =~ /^site/i ){
             last OUTER ;
         }
         $site_row++;
@@ -230,7 +231,6 @@ sub _build_month_cells{
             # carp $candidate;
             my $three = substr($candidate,0,3);
             my $dt = $strp->parse_datetime("1970 $three 1");
-
             if($dt){
                 $months->[$idx]=cr2cell($current_column,$row);
                 $idx++;
