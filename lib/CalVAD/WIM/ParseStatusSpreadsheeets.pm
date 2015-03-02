@@ -435,6 +435,25 @@ sub _build_ts {
   return; # error to get here, by the way
 }
 
+sub expand_abbrev {
+    my $self    = shift;
+    my $record  = shift;
+    my $lookups = [
+        [ 'cl[^a]', 'class' ],
+        [ 'lc',     'low counts', ],
+        [ 'ln',     'lane' ],
+        [ 'w/o',    'weight over' ],
+        [ 'w/d',    'weight diff' ],
+        [ 'h/c',    'high class' ],
+    ];
+    for my $pair ( @{$lookups} ) {
+        my $match = $pair->[0];
+        my $value = $pair->[1];
+        $record =~ s/$match/$value/i;
+    }
+    return $record;
+}
+
 sub _build_data {
 
   my $self = shift;
@@ -458,6 +477,9 @@ sub _build_data {
       $record->{$_} = $sheet->{$cell};
       if($record->{$_}){
           $record->{$_} =~ s/\s*\/\s*/\//g;
+      }
+      if($_ =~ /notes/){
+          $record->{$_} = $self->expand_abbrev($record->{$_});
       }
     }
     $record->{'ts'}=$self->ts;
