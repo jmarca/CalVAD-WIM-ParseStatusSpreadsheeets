@@ -117,6 +117,7 @@ $obj = CalVAD::WIM::ParseStatusSpreadsheeets->new(
 # get data
 $warnings = [warnings { $data = $obj->data; }];
 is(scalar @{$warnings},3,"got expected number of warnings from $file");
+# carp Dumper $warnings;
 ok($data,'got data okay');
 
 ##################################################

@@ -456,6 +456,9 @@ sub _build_data {
     foreach (keys %{$header}) {
       my $cell = cr2cell($header->{$_},$row);
       $record->{$_} = $sheet->{$cell};
+      if($record->{$_}){
+          $record->{$_} =~ s/\s*\/\s*/\//g;
+      }
     }
     $record->{'ts'}=$self->ts;
 
