@@ -460,9 +460,11 @@ sub _build_data {
     $record->{'ts'}=$self->ts;
 
     # check for a possible error
-    if ( !$record->{'class_status'} || !$record->{'weight_status'} ) {
+    if ( (!$record->{'class_status'}  || $record->{'class_status'} eq '?') ||
+         (!$record->{'weight_status'} || $record->{'weight_status'} eq '?')) {
       # possible mistake
-        if ( !$record->{'class_status'} &&  $record->{'class_notes'} ){
+        if ( (!$record->{'class_status'} || $record->{'class_status'} eq '?') &&
+  $record->{'class_notes'} ){
             # have a class note, but no class status
             # try using the color of the note
             my $cl = $sheet->{'cell'}->[$header->{'class_notes'}][$row];
@@ -472,17 +474,18 @@ sub _build_data {
             if(! defined $fgcolor && $record->{'class_notes'} ){
                 $record->{'class_status'}='G';
                 carp 'fgcolor of note is undefined but the note exists; assuming good class status for row ',$row,' file ',$self->file;
-                $record->{'parser_decisions_notes'} .= 'Setting UNDEFINED class status to G based on black or undefined class note color.  ';
+                $record->{'parser_decisions_notes'} .= 'Setting UNDEFINED or ? class status to G based on black or undefined class note color.  ';
             }elsif($fgcolor =~ /ff/){
                 $record->{'class_status'}='B';
-                $record->{'parser_decisions_notes'} .= "Setting UNDEFINED class status to B based on RED ($fgcolor) class note color.  ";
+                $record->{'parser_decisions_notes'} .= "Setting UNDEFINED or ? class status to B based on RED ($fgcolor) class note color.  ";
             }else{
                 carp 'color of entry unhelpful', $fgcolor;
                 $record->{'parser_decisions_notes'} .= "Color $fgcolor for class note color not yet related to a status.  ";
 
             }
 
-        }elsif( !$record->{'weight_status'} && $record->{'weight_notes'} ){
+        }elsif( (!$record->{'weight_status'} || $record->{'weight_status'} eq '?') &&
+                $record->{'weight_notes'} ){
             # have a weight note, but no weight status
             # try using the color of the note
             my $cl = $sheet->{'cell'}->[$header->{'weight_notes'}][$row];
@@ -492,11 +495,11 @@ sub _build_data {
             if(! defined $fgcolor && $record->{'weight_notes'} ){
                 $record->{'weight_status'}='G';
                 carp 'fgcolor of note is undefined but the note exists; assuming good weight status for row ',$row,' file ',$self->file;
-                $record->{'parser_decisions_notes'} .= 'Setting UNDEFINED weight status to G based on black or undefined weight note color.  ';
+                $record->{'parser_decisions_notes'} .= 'Setting UNDEFINED or ? weight status to G based on black or undefined weight note color.  ';
 
             }elsif($fgcolor =~ /^#ff/){
                 $record->{'weight_status'}='B';
-                $record->{'parser_decisions_notes'} .= "Setting UNDEFINED weight status to B based on RED ($fgcolor) weight note color.  ";
+                $record->{'parser_decisions_notes'} .= "Setting UNDEFINED or ? weight status to B based on RED ($fgcolor) weight note color.  ";
             }else{
                 carp 'color of entry unhelpful', $fgcolor;
                 $record->{'parser_decisions_notes'} .= "Color $fgcolor for weight note color not yet related to a status.  ";
@@ -505,7 +508,8 @@ sub _build_data {
     }
     ## check again, inserting "undefined" to flag the need for manual checking in DB
 
-    if ( !$record->{'class_status'} && $self->write_undefined ) {
+    if ( (!$record->{'class_status'}  || $record->{'class_status'} eq '?') &&
+         $self->write_undefined ) {
         $record->{'class_status'} = 'UNDEFINED';
         $record->{'parser_decisions_notes'} .= 'Forcing UNDEFINED on blank class status.  ';
         # if ( $record->{'class_notes'} ){
@@ -514,7 +518,8 @@ sub _build_data {
         # }
 
     }
-    if( !$record->{'weight_status'} && $self->write_undefined ) {
+    if((!$record->{'weight_status'} || $record->{'weight_status'} eq '?'))
+        && $self->write_undefined ) {
         $record->{'weight_status'} = 'UNDEFINED';
         $record->{'parser_decisions_notes'} .= 'Forcing UNDEFINED on blank weight status.  ';
         # if ( $record->{'weight_notes'} ){
