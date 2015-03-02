@@ -37,6 +37,35 @@ is(scalar @{$warnings},0,"got expected number of warnings from $file");
 
 ok($data,'got data okay');
 
+##################################################
+# another
+##################################################
+$file = File::Spec->rel2abs('./t/files/IRD 05-2013 MONTHLY SITE STATUSBA.xlsx');
+$obj = CalVAD::WIM::ParseStatusSpreadsheeets->new
+    (
+             'write_undefined' => 0,
+             'past_month'=>0,
+             'file'=>$file,
+             'year'=>2013,
+    );
+
+$header  = $obj->header ;
+
+is_deeply($header,{
+                   site_no=>1,
+                   class_status=>5,
+                   class_notes=>6,
+                   weight_status=>8,
+                   weight_notes=>9,
+                  }
+          ,'header is parsed into correct column definitions');
+
+
+$warnings = [warnings { $data = $obj->data; }];
+is(scalar @{$warnings},0,"got expected number of warnings from $file");
+
+ok($data,'got data okay');
+
 
 
 done_testing;

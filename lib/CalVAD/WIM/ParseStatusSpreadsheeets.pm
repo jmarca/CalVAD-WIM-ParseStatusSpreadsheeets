@@ -3,14 +3,19 @@ use strict;
 use warnings;
 package CalVAD::WIM::ParseStatusSpreadsheeets;
 
+
 use namespace::autoclean;
 use Moose;
+
+
+use CalVAD::WIM::StatusRecord;
 
 use Spreadsheet::Read;
 use Data::Dumper;
 use DateTime::Format::Pg;
 use DateTime::Format::Strptime;
 use Carp;
+
 
 
 has 'write_undefined' => (
@@ -53,9 +58,11 @@ has 'header' => (
                  builder   => '_build_header',
                 );
 
+
 has 'data' => (
                is=>'ro',
-               isa=>'ArrayRef',
+    # isa=>'ArrayRef[CalVAD::WIM::StatusRecord]',
+    isa=>'ArrayRef',
                lazy=>1,
                init_arg => undef,
                builder   => '_build_data',
@@ -556,7 +563,30 @@ sub _build_data {
         $record->{'weight_status'} eq 'UNDEFINED'){
         carp 'Setting at least one status to undefined.  Needs check: ',$self->file, Dumper $record;
     }
-    push @{$bulk},$record;
+    my $record_test;
+    eval{$record_test = CalVAD::WIM::StatusRecord->new(%{$record})};
+    if ($@) {
+        if ( $@->message =~ /Attribute.*site_no.*type\s*constraint/ )
+        {
+            # stupid typo, inappropriate use of spreadsheets
+            # try to get site_no from site_name
+            my $namecell = cr2cell( $header->{'site_no'} + 1, $row );
+            my $name = $sheet->{$namecell};
+            my $replacement =
+                CalVAD::WIM::StatusRecord->get_site_from_name($name);
+            $record->{'site_no'} = $replacement;
+        }else{
+            carp "regex failed again",$@->message;
+        }
+
+        # any other checks go here?
+        eval { $record_test = CalVAD::WIM::StatusRecord->new( %{$record} ) };
+        if ($@) {
+            carp 'did not parse record properly ', $@, Dumper($record);
+            next;
+        }
+    }
+    push @{$bulk}, $record;
   }
   continue {
 
